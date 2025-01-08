@@ -39,7 +39,7 @@ pub const RleEncoder = struct {
     /// The `encoded` slice will contain the following bytes: `[3, 'a', 3, 'b', 2, 'c']`.
     pub fn encode(self: @This(), input: []const u8) ![]u8 {
         if (input.len == 0) {
-            return &[_]u8{};
+            return errors.InputError.EmptySequence;
         }
 
         var output = std.ArrayList(u8).init(self.allocator);
@@ -97,7 +97,7 @@ pub const RleEncoder = struct {
     /// The `decoded` slice will contain the original input data: `"aaabbbcc"`.
     pub fn decode(self: @This(), input: []const u8) ![]u8 {
         if (input.len == 0) {
-            return &[_]u8{};
+            return errors.InputError.EmptySequence;
         }
 
         if (input.len % 2 != 0) {
@@ -139,33 +139,21 @@ test "RleEncoder encode and decode" {
 }
 
 test "RleEncoder encode empty input" {
-    var allocator = std.testing.allocator;
-    var encoder = RleEncoder.init(allocator);
-
+    var encoder = RleEncoder.init(std.testing.allocator);
     const input = &[_]u8{};
-    const expected_encoded = &[_]u8{};
-
-    const encoded = try encoder.encode(input);
-    defer allocator.free(encoded);
-    try std.testing.expectEqualSlices(u8, expected_encoded, encoded);
+    const result = encoder.encode(input);
+    try std.testing.expectError(errors.InputError.EmptySequence, result);
 }
 
 test "RleEncoder decode empty input" {
-    var allocator = std.testing.allocator;
-    var encoder = RleEncoder.init(allocator);
-
+    var encoder = RleEncoder.init(std.testing.allocator);
     const input = &[_]u8{};
-    const expected_decoded = &[_]u8{};
-
-    const decoded = try encoder.decode(input);
-    defer allocator.free(decoded);
-    try std.testing.expectEqualSlices(u8, expected_decoded, decoded);
+    const result = encoder.decode(input);
+    try std.testing.expectError(errors.InputError.EmptySequence, result);
 }
 
 test "RleEncoder decode invalid input" {
-    const allocator = std.testing.allocator;
-    const encoder = RleEncoder.init(allocator);
-
+    const encoder = RleEncoder.init(std.testing.allocator);
     const input = &[_]u8{ 3, 'a', 3 };
     const result = encoder.decode(input);
     try std.testing.expectError(errors.InputError.InvalidInput, result);

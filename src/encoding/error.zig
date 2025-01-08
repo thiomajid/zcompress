@@ -1,1 +1,1 @@
-pub const InputError = error{InvalidInput};
+pub const InputError = error{ InvalidInput, EmptySequence };
