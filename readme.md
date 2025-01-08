@@ -1,5 +1,7 @@
 # zcompress
 
+## Work In Progress
+
 `zcompress` is a command line tool that offers various compression algorithms for files. It allows you to compress and decompress files using different algorithms to suit your needs.
 
 ## Features
