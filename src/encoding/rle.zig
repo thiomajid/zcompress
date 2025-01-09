@@ -120,8 +120,8 @@ pub const RleEncoder = struct {
 };
 
 test "RleEncoder encode and decode" {
-    var allocator = std.testing.allocator;
-    var encoder = RleEncoder.init(allocator);
+    const allocator = std.testing.allocator;
+    const encoder = RleEncoder.init(allocator);
 
     const input = "aaabbbcc";
     const expected_encoded = &[_]u8{ 3, 'a', 3, 'b', 2, 'c' };
@@ -139,14 +139,14 @@ test "RleEncoder encode and decode" {
 }
 
 test "RleEncoder encode empty input" {
-    var encoder = RleEncoder.init(std.testing.allocator);
+    const encoder = RleEncoder.init(std.testing.allocator);
     const input = &[_]u8{};
     const result = encoder.encode(input);
     try std.testing.expectError(errors.InputError.EmptySequence, result);
 }
 
 test "RleEncoder decode empty input" {
-    var encoder = RleEncoder.init(std.testing.allocator);
+    const encoder = RleEncoder.init(std.testing.allocator);
     const input = &[_]u8{};
     const result = encoder.decode(input);
     try std.testing.expectError(errors.InputError.EmptySequence, result);
