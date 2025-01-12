@@ -1,5 +1,6 @@
 const std = @import("std");
 const errors = @import("./error.zig");
+const Encoder = @import("./Encoder.zig").Encoder;
 
 /// `RleEncoder` provides a utility for run-length encoding (RLE) and decoding of data.
 /// This is a form of lossless data compression where sequences of the same data value
@@ -9,6 +10,13 @@ pub const RleEncoder = struct {
     /// The memory allocator used for dynamic memory allocations during encoding and decoding.
     allocator: std.mem.Allocator,
 
+    const Self = @This();
+
+    pub const vtable = Encoder.VTable{
+        .encode = encode,
+        .decode = decode,
+    };
+
     /// Initializes an `RleEncoder` instance.
     ///
     /// ## Parameters
@@ -16,8 +24,12 @@ pub const RleEncoder = struct {
     ///
     /// ## Returns
     /// - A new instance of the encoder.
-    pub fn init(allocator: std.mem.Allocator) RleEncoder {
+    pub fn init(allocator: std.mem.Allocator) @This() {
         return .{ .allocator = allocator };
+    }
+
+    pub fn encoder(self: *Self) Encoder {
+        return .{ .ptr = self, .vtable = &vtable };
     }
 
     /// Encodes the input data using run-length encoding (RLE).
@@ -37,10 +49,12 @@ pub const RleEncoder = struct {
     /// ```
     ///
     /// The `encoded` slice will contain the following bytes: `[3, 'a', 3, 'b', 2, 'c']`.
-    pub fn encode(self: @This(), input: []const u8) ![]u8 {
+    pub fn encode(ctx: *anyopaque, input: []const u8) ![]u8 {
         if (input.len == 0) {
             return errors.InputError.EmptySequence;
         }
+
+        const self: *Self = @ptrCast(@alignCast(ctx));
 
         var output = std.ArrayList(u8).init(self.allocator);
         defer output.deinit();
@@ -95,7 +109,7 @@ pub const RleEncoder = struct {
     /// ```
     ///
     /// The `decoded` slice will contain the original input data: `"aaabbbcc"`.
-    pub fn decode(self: @This(), input: []const u8) ![]u8 {
+    pub fn decode(ctx: *anyopaque, input: []const u8) ![]u8 {
         if (input.len == 0) {
             return errors.InputError.EmptySequence;
         }
@@ -103,6 +117,8 @@ pub const RleEncoder = struct {
         if (input.len % 2 != 0) {
             return errors.InputError.InvalidInput;
         }
+
+        const self: *const Self = @ptrCast(@alignCast(ctx));
 
         var output = std.ArrayList(u8).init(self.allocator);
         defer output.deinit();
@@ -121,7 +137,8 @@ pub const RleEncoder = struct {
 
 test "RleEncoder encode and decode" {
     const allocator = std.testing.allocator;
-    const encoder = RleEncoder.init(allocator);
+    var rle_encoder = RleEncoder.init(allocator);
+    var encoder = rle_encoder.encoder();
 
     const input = "aaabbbcc";
     const expected_encoded = &[_]u8{ 3, 'a', 3, 'b', 2, 'c' };
@@ -139,21 +156,27 @@ test "RleEncoder encode and decode" {
 }
 
 test "RleEncoder encode empty input" {
-    const encoder = RleEncoder.init(std.testing.allocator);
+    var rle_encoder = RleEncoder.init(std.testing.allocator);
+    var encoder = rle_encoder.encoder();
+
     const input = &[_]u8{};
     const result = encoder.encode(input);
     try std.testing.expectError(errors.InputError.EmptySequence, result);
 }
 
 test "RleEncoder decode empty input" {
-    const encoder = RleEncoder.init(std.testing.allocator);
+    var rle_encoder = RleEncoder.init(std.testing.allocator);
+    var encoder = rle_encoder.encoder();
+
     const input = &[_]u8{};
     const result = encoder.decode(input);
     try std.testing.expectError(errors.InputError.EmptySequence, result);
 }
 
 test "RleEncoder decode invalid input" {
-    const encoder = RleEncoder.init(std.testing.allocator);
+    var rle_encoder = RleEncoder.init(std.testing.allocator);
+    var encoder = rle_encoder.encoder();
+
     const input = &[_]u8{ 3, 'a', 3 };
     const result = encoder.decode(input);
     try std.testing.expectError(errors.InputError.InvalidInput, result);
